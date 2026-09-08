@@ -1,0 +1,10 @@
+node_modules/
+mc-server/*
+!mc-server/README.txt
+!mc-server/.gitkeep
+data/*.json
+!data/.example
+npm-debug.log
+.env
+.DS_Store
+Thumbs.db

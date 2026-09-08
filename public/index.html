@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Krytoi Dashboard — Minecraft Server</title>
+<link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="loginScreen" class="login-screen hidden">
+    <div class="login-box">
+      <div class="login-logo">Krytoi</div>
+      <h2>Вход в панель</h2>
+      <p>Защити свой сервер от посторонних</p>
+      <form onsubmit="doLogin(event)">
+        <input id="loginUser" placeholder="Логин" autocomplete="username" required>
+        <input id="loginPass" type="password" placeholder="Пароль" autocomplete="current-password" required>
+        <button type="submit" class="btn btn-primary" style="width:100%">Войти</button>
+        <div id="loginError" class="login-error hidden"></div>
+      </form>
+      <div class="login-hint">Первый вход: admin / admin — потом смени в Настройках</div>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-mark">K</div>
+        <div>
+          <div class="logo-title">Krytoi</div>
+          <div class="logo-sub">DASHBOARD</div>
+        </div>
+      </div>
+      
+      <nav class="nav">
+        <button class="nav-item active" data-page="overview"><span class="nav-num">01</span> Обзор</button>
+        <button class="nav-item" data-page="console"><span class="nav-num">02</span> Консоль</button>
+        <button class="nav-item" data-page="files"><span class="nav-num">03</span> Файлы</button>
+        <button class="nav-item" data-page="plugins"><span class="nav-num">04</span> Плагины <span class="nav-badge">NEW</span></button>
+        <button class="nav-item" data-page="players"><span class="nav-num">05</span> Игроки <span class="live-dot" id="navPlayersDot"></span></button>
+        <button class="nav-item" data-page="settings"><span class="nav-num">06</span> Настройки</button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="server-mini">
+          <div class="mini-dot" id="miniDot"></div>
+          <div>
+            <div class="mini-name">My Server</div>
+            <div class="mini-status" id="miniStatus">Загрузка...</div>
+          </div>
+        </div>
+        <button class="btn btn-sm" style="width:100%;margin-top:8px" onclick="doLogout()">Выйти</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="header">
+        <div class="header-left">
+          <h1 id="pageTitle">Обзор</h1>
+          <p id="pageSubtitle">Управление твоим Minecraft сервером</p>
+        </div>
+        <div class="header-right">
+          <div class="ip-box">
+            <span class="ip-label">IP сервера</span>
+            <span class="ip-value" id="serverIp">—</span>
+            <button class="copy-btn" onclick="copyIp()">Копировать</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- PAGE: Overview -->
+      <section id="page-overview" class="page active">
+        <div class="status-card" id="statusCard">
+          <div class="status-left">
+            <div class="status-icon" id="statusIcon">●</div>
+            <div>
+              <div class="status-label" id="statusLabel">Выключен</div>
+              <div class="status-uptime" id="statusUptime">Оффлайн</div>
+            </div>
+          </div>
+          <div class="status-actions">
+            <button class="btn btn-start" id="btnStart" onclick="startServer()">Запустить</button>
+            <button class="btn btn-stop hidden" id="btnStop" onclick="stopServer()">Остановить</button>
+            <button class="btn btn-restart hidden" id="btnRestart" onclick="restartServer()">Перезапуск</button>
+            <button class="btn btn-kill hidden" id="btnKill" onclick="killServer()" title="Принудительно убить">×</button>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-title">Игроки <span id="playersLiveHint" style="margin-left:auto;font-weight:400;color:var(--muted);font-size:12px"></span></div>
+            <div class="big-number" id="playersCount">0 / 20</div>
+            <div class="card-hint" id="playersListHint">никого нет</div>
+            <div class="progress"><div class="progress-bar" id="playersBar" style="width:0%"></div></div>
+            <div id="playersAvatars" class="avatars"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Нагрузка CPU</div>
+            <div class="big-number" id="cpuValue">0%</div>
+            <div class="card-hint" id="cpuHint">ожидание</div>
+            <div class="progress"><div class="progress-bar blue" id="cpuBar" style="width:0%"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Память RAM</div>
+            <div class="big-number" id="ramValue">0 / 2048 MB</div>
+            <div class="card-hint" id="ramHint">не используется</div>
+            <div class="progress"><div class="progress-bar green" id="ramBar" style="width:0%"></div></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Быстрые действия</div>
+            <div class="quick-grid">
+              <button class="quick-btn" onclick="sendQuick('say Привет с дашборда!')">Сказать привет</button>
+              <button class="quick-btn" onclick="sendQuick('time set day')">День</button>
+              <button class="quick-btn" onclick="sendQuick('time set night')">Ночь</button>
+              <button class="quick-btn" onclick="sendQuick('weather clear')">Ясная погода</button>
+              <button class="quick-btn" onclick="sendQuick('whitelist on')">Вайтлист вкл</button>
+              <button class="quick-btn" onclick="sendQuick('save-all')">Сохранить мир</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Информация</div>
+            <div class="info-list">
+              <div class="info-row"><span>Папка сервера</span><code>mc-server/</code></div>
+              <div class="info-row"><span>Ядро</span><span id="jarInfo">проверка...</span></div>
+              <div class="info-row"><span>Файлов</span><span id="filesInfo">—</span></div>
+              <div class="info-row"><span>Размер</span><span id="sizeInfo">—</span></div>
+            </div>
+            <div class="alert" id="demoAlert" style="display:none">
+              Демо-режим: помести <code>server.jar</code> (Paper / Spigot / Vanilla) в папку <code>mc-server</code> чтобы управлять реальным сервером.
+            </div>
+            <div id="tgMiniStatus" class="tg-mini">Telegram: не настроен</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Последние логи</div>
+          <pre class="mini-logs" id="miniLogs">Загрузка...</pre>
+          <button class="btn btn-secondary" onclick="switchPage('console')">Открыть консоль →</button>
+        </div>
+      </section>
+
+      <!-- PAGE: Console -->
+      <section id="page-console" class="page">
+        <div class="console-card">
+          <div class="console-toolbar">
+            <span>Консоль сервера</span>
+            <div class="toolbar-actions">
+              <button class="btn btn-sm" onclick="clearLogs()">Очистить</button>
+              <label class="check"><input type="checkbox" id="autoScroll" checked> Автоскролл</label>
+            </div>
+          </div>
+          <pre class="console" id="console"></pre>
+          <div class="console-input-row">
+            <span class="prompt">›</span>
+            <input id="cmdInput" placeholder="Введи команду (help, list, stop, say ...)" autocomplete="off" />
+            <button class="btn btn-primary" onclick="sendCommand()">Отправить</button>
+          </div>
+          <div class="console-hint">↑ / ↓ — история команд</div>
+        </div>
+      </section>
+
+      <!-- PAGE: Files -->
+      <section id="page-files" class="page">
+        <div class="card">
+          <div class="files-header">
+            <div class="breadcrumb" id="breadcrumb"></div>
+            <div class="files-actions">
+              <button class="btn btn-sm" onclick="createFolder()">+ Папка</button>
+              <button class="btn btn-sm" onclick="createFile()">+ Файл</button>
+              <label class="btn btn-sm btn-primary">
+                Загрузить <input type="file" id="fileUpload" multiple hidden onchange="uploadFiles(this.files)">
+              </label>
+            </div>
+          </div>
+
+          <div class="files-toolbar">
+            <button class="btn btn-sm" onclick="navigateUp()">Назад</button>
+            <span class="path-display" id="pathDisplay">/</span>
+            <button class="btn btn-sm" onclick="refreshFiles()">Обновить</button>
+          </div>
+
+          <div class="file-list" id="fileList">
+            <div class="loading">Загрузка...</div>
+          </div>
+        </div>
+
+        <div id="editorModal" class="modal hidden">
+          <div class="modal-content large">
+            <div class="modal-header">
+              <span id="editorFileName">Редактирование</span>
+              <button class="btn btn-sm" onclick="closeEditor()">×</button>
+            </div>
+            <textarea id="editorArea" spellcheck="false"></textarea>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" onclick="closeEditor()">Отмена</button>
+              <button class="btn btn-primary" onclick="saveFile()">Сохранить</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE: Plugins -->
+      <section id="page-plugins" class="page">
+        <div class="card">
+          <div class="card-title">Браузер плагинов <span class="muted" style="font-weight:400">· Modrinth</span></div>
+          <p class="hint">Ищи плагины и ставь в один клик — файл сразу улетит в <code>mc-server/plugins/</code>. Нужен перезапуск сервера.</p>
+          <div class="plugins-search">
+            <input id="pluginSearch" placeholder="Поиск — например, EssentialsX, LuckPerms, ViaVersion">
+            <select id="pluginLoader" class="select">
+              <option value="paper">Paper / Spigot</option>
+              <option value="fabric">Fabric</option>
+              <option value="forge">Forge</option>
+              <option value="vanilla">Vanilla</option>
+            </select>
+            <select id="pluginVersion" class="select">
+              <option value="all">Все версии</option>
+              <option value="1.21.11">1.21.11</option>
+              <option value="1.21.10">1.21.10</option>
+              <option value="1.21.8">1.21.8</option>
+              <option value="1.21.7">1.21.7</option>
+              <option value="1.21.5">1.21.5</option>
+              <option value="1.21.4">1.21.4</option>
+              <option value="1.21.3">1.21.3</option>
+              <option value="1.21.2">1.21.2</option>
+              <option value="1.21.1">1.21.1</option>
+              <option value="1.21">1.21</option>
+              <option value="1.20.6">1.20.6</option>
+              <option value="1.20.4">1.20.4</option>
+              <option value="1.20.2">1.20.2</option>
+              <option value="1.20.1">1.20.1</option>
+              <option value="1.19.4">1.19.4</option>
+              <option value="1.19.2">1.19.2</option>
+              <option value="1.18.2">1.18.2</option>
+              <option value="1.17.1">1.17.1</option>
+              <option value="1.16.5">1.16.5</option>
+              <option value="custom">Своя...</option>
+            </select>
+            <input id="pluginVersionCustom" class="select" placeholder="1.21.11" style="display:none;max-width:120px">
+          </div>
+          <div class="hint" style="margin:-4px 0 10px">Вводи — поиск идёт сам, без кнопки. <span id="pluginsStatus" class="muted"></span></div>
+          <div class="plugins-filters">
+            <button class="chip active" data-cat="all" onclick="filterCat('all')">Все</button>
+            <button class="chip" data-cat="economy" onclick="filterCat('economy')">Экономика</button>
+            <button class="chip" data-cat="management" onclick="filterCat('management')">Управление</button>
+            <button class="chip" data-cat="world" onclick="filterCat('world')">Миры</button>
+            <button class="chip" data-cat="social" onclick="filterCat('social')">Чат</button>
+          </div>
+          <div id="pluginsList" class="plugins-grid">
+            <div class="plugins-empty">Начни вводить — поиск идёт сам. Листай вниз для ещё.</div>
+          </div>
+          <div id="pluginsSentinel" style="height:1px"></div>
+          <div id="pluginsMoreInfo" class="hint" style="text-align:center;margin-top:8px"></div>
+          <div id="pluginsLoading" class="loading" style="display:none">Загружаем ещё...</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Установленные плагины</div>
+          <div id="installedPlugins" class="installed-list"><div class="loading">Загрузка...</div></div>
+        </div>
+      </section>
+
+      <!-- PAGE: Players -->
+      <section id="page-players" class="page">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Игроки онлайн <span id="playersOnlineBadge" class="badge">0</span></div>
+            <div id="playersOnlineList" class="players-list"><div class="empty">Сервер выключен или никого нет</div></div>
+            <div class="hint" style="margin-top:10px">Источник: RCON (если настроен) или парсинг логов. Обновляется каждые 3 сек.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Быстрые команды</div>
+            <p class="hint">Нажми — подставится в консоль</p>
+            <div class="quick-grid">
+              <button class="quick-btn" onclick="prefillCmd('whitelist add ')">Вайтлист добавить</button>
+              <button class="quick-btn" onclick="prefillCmd('whitelist remove ')">Вайтлист убрать</button>
+              <button class="quick-btn" onclick="prefillCmd('op ')">Выдать админку</button>
+              <button class="quick-btn" onclick="prefillCmd('deop ')">Снять админку</button>
+              <button class="quick-btn" onclick="prefillCmd('ban ')">Забанить</button>
+              <button class="quick-btn" onclick="prefillCmd('pardon ')">Разбанить</button>
+              <button class="quick-btn" onclick="prefillCmd('kick ')">Кикнуть</button>
+              <button class="quick-btn" onclick="prefillCmd('tp ')">Телепорт</button>
+            </div>
+            <div class="alert" style="margin-top:16px">
+              Совет: введи команду в консоли, например <code>whitelist add Notch</code> и нажми Enter
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">RCON подключение</div>
+          <p class="hint">Для точного списка игроков включи RCON в <code>server.properties</code>: <code>rcon.port=25575</code> <code>rcon.password=твой_пароль</code> <code>enable-rcon=true</code> и впиши сюда.</p>
+          <div class="rcon-form">
+            <input id="rconHost" placeholder="host (127.0.0.1)">
+            <input id="rconPort" placeholder="port (25575)">
+            <input id="rconPass" type="password" placeholder="RCON пароль">
+            <button class="btn btn-primary" onclick="saveRcon()">Сохранить</button>
+            <button class="btn btn-secondary" onclick="testRcon()">Тест</button>
+          </div>
+          <div id="rconStatus" class="hint"></div>
+        </div>
+      </section>
+
+      <!-- PAGE: Settings -->
+      <section id="page-settings" class="page">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">server.properties</div>
+            <p class="hint">Основные настройки сервера. После изменения перезапусти сервер.</p>
+            <textarea id="propsArea" class="props-area" spellcheck="false" placeholder="Загрузка..."></textarea>
+            <div style="display:flex; gap:10px; margin-top:12px">
+              <button class="btn btn-primary" onclick="saveProps()">Сохранить</button>
+              <button class="btn btn-secondary" onclick="loadProps()">Перезагрузить</button>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="card">
+              <div class="card-title">Папка сервера</div>
+              <p class="hint">Без переноса — укажи путь к папке где уже лежит твой mcspanel сервер. Дашборд будет управлять им напрямую.</p>
+              <div class="form">
+                <code id="currentPath" style="word-break:break-all;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;display:block">загрузка...</code>
+                <input id="newPath" placeholder="/home/user/mcspanel/servers/server1  или  C:\mcspanel\server">
+                <div style="display:flex;gap:8px">
+                  <button class="btn btn-primary" onclick="savePath()">Подключить</button>
+                  <button class="btn btn-secondary" onclick="loadPath()">Обновить</button>
+                </div>
+                <div id="pathMsg" class="hint"></div>
+                <div class="alert">Останови сервер в mcspanel перед запуском отсюда, иначе два процесса испортят мир.</div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Авторизация</div>
+              <p class="hint">Зайди под паролем чтобы управлять сервером. По умолчанию <code>admin / admin</code></p>
+              <div class="form">
+                <input id="authUser" placeholder="Новый логин">
+                <input id="authPass" type="password" placeholder="Новый пароль">
+                <input id="authPass2" type="password" placeholder="Повтори пароль">
+                <button class="btn btn-primary" onclick="changeAuth()">Сменить</button>
+                <div id="authMsg" class="hint"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Telegram уведомления</div>
+              <p class="hint">Получай сообщения: сервер запустился / остановился / игрок зашел / краш. Создай бота у <a href="https://t.me/BotFather" target="_blank">@BotFather</a> → /newbot → токен.</p>
+              <div class="form">
+                <input id="tgToken" placeholder="Bot Token (123456:ABC...)">
+                <input id="tgChatId" placeholder="Chat ID (например 123456789)">
+                <div style="display:flex;gap:8px">
+                  <button class="btn btn-primary" onclick="saveTelegram()">Сохранить</button>
+                  <button class="btn btn-secondary" onclick="testTelegram()">Тест</button>
+                </div>
+                <label class="check" style="margin-top:8px"><input type="checkbox" id="tgOnStart"> Уведомлять о запуске/остановке</label>
+                <label class="check"><input type="checkbox" id="tgOnJoin"> Уведомлять о входе/выходе игроков</label>
+                <label class="check"><input type="checkbox" id="tgOnCrash"> Уведомлять о краше</label>
+                <div id="tgMsg" class="hint"></div>
+                <div class="alert" style="margin-top:10px">Как узнать Chat ID: напиши боту любое сообщение, затем открой <code>https://api.telegram.org/botТОКЕН/getUpdates</code> и найди <code>chat.id</code>.</div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Параметры запуска <span class="muted" style="font-weight:400">· java</span></div>
+              <p class="hint">Меняй RAM, jar и флаги без редактирования файлов. Применяется при следующем запуске.</p>
+              <div class="form">
+                <div class="form-row">
+                  <label>RAM максимум (-Xmx)
+                    <select id="launchXmx" onchange="previewLaunch()">
+                      <option value="1G">1 GB</option>
+                      <option value="2G">2 GB</option>
+                      <option value="4G">4 GB</option>
+                      <option value="6G">6 GB</option>
+                      <option value="8G">8 GB</option>
+                      <option value="12G">12 GB</option>
+                      <option value="16G">16 GB</option>
+                      <option value="custom">Своё...</option>
+                    </select>
+                    <input id="launchXmxCustom" placeholder="например 3G или 512M" style="display:none;margin-top:6px">
+                  </label>
+                  <label>RAM старт (-Xms)
+                    <select id="launchXms" onchange="previewLaunch()">
+                      <option value="512M">512 MB</option>
+                      <option value="1G">1 GB</option>
+                      <option value="2G">2 GB</option>
+                      <option value="4G">4 GB</option>
+                      <option value="custom">Своё...</option>
+                    </select>
+                    <input id="launchXmsCustom" placeholder="например 1G" style="display:none;margin-top:6px">
+                  </label>
+                </div>
+                <label>Путь к Java
+                  <input id="launchJava" placeholder="java" oninput="previewLaunch()">
+                  <span class="hint" style="margin:0">Обычно <code>java</code>, или полный путь вроде <code>C:\Program Files\Java\bin\java.exe</code></span>
+                </label>
+                <label>Jar файл
+                  <select id="launchJar" onchange="previewLaunch()"></select>
+                </label>
+                <label>Доп. JVM флаги (extraFlags)
+                  <input id="launchFlags" placeholder="например -XX:+UseG1GC -XX:MaxGCPauseMillis=50" oninput="previewLaunch()">
+                </label>
+                <label>Аргументы после jar (extraArgs)
+                  <input id="launchArgs" placeholder="nogui" oninput="previewLaunch()">
+                </label>
+                <div class="launch-preview">
+                  <span class="muted">Итоговая команда:</span>
+                  <code id="launchPreview">загрузка...</code>
+                  <button class="btn btn-sm" onclick="copyLaunch()">Копировать</button>
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button class="btn btn-primary" onclick="saveLaunch()">Сохранить</button>
+                  <button class="btn btn-secondary" onclick="loadLaunch()">Сбросить</button>
+                </div>
+                <div id="launchMsg" class="hint"></div>
+                <div class="info-list" style="margin-top:8px">
+                  <div class="info-row"><span>Порт</span><span>25565 (по умолчанию)</span></div>
+                  <div class="info-row"><span>Доступные jar</span><span id="jarsInfo">—</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="app.js"></script>
+</body>
+</html>
